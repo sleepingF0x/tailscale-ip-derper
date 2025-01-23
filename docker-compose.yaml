@@ -1,0 +1,47 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    restart: always
+    networks:
+      - tailscale_network
+    volumes:
+      - /dev/net/tun:/dev/net/tun
+      - tailscale-sock:/var/run/tailscale
+      - tailscale-state:/var/lib/tailscale
+    cap_add:
+      - net_admin
+      - sys_module
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=${TS_HOSTNAME}
+      - TS_NO_LOGS_NO_SUPPORT=true
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SOCKET=/var/run/tailscale/tailscaled.sock
+
+  derper:
+    container_name: ip_derper
+    image: yangchuansheng/ip_derper:latest
+    restart: always
+    networks:
+      - tailscale_network
+    ports:
+      - ${STUN_PORT}:3478/udp
+      - ${DERP_PORT}:443
+    environment:
+      - DERP_DOMAIN=${DERP_DOMAIN}
+      - DERP_CERT_MODE=manual
+      - DERP_VERIFY_CLIENTS=true
+      - DERP_DEBUG_LOGS=true
+    volumes:
+      - tailscale-sock:/var/run/tailscale
+    depends_on:
+      - tailscale
+
+volumes:
+  tailscale-sock:
+  tailscale-state:
+
+networks:
+  tailscale_network:
+    driver: bridge
